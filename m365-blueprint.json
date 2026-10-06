@@ -1,0 +1,101 @@
+{
+  "solution": "LGauYouthPolicyPortal",
+  "version": "1.0.0",
+  "placeholders": {
+    "tenantId": "<MICROSOFT_ENTRA_TENANT_ID>",
+    "siteUrl": "https://<tenant>.sharepoint.com/sites/youth-policy",
+    "teamId": "<MICROSOFT_TEAMS_TEAM_ID>",
+    "environmentId": "<POWER_PLATFORM_ENVIRONMENT_ID>"
+  },
+  "sharePoint": {
+    "siteType": "CommunicationSite",
+    "locale": "ru-RU",
+    "libraries": [
+      {
+        "name": "Documents",
+        "displayName": "Документооборот",
+        "versioning": true,
+        "majorVersions": 50,
+        "contentTypes": ["Приказ", "Служебная записка", "Протокол заседания"],
+        "columns": ["DocumentType:Choice", "ApprovalStatus:Choice", "RouteStage:Choice", "Owner:Person", "DueDate:DateTime"]
+      },
+      {
+        "name": "DocumentTemplates",
+        "displayName": "Шаблоны документов",
+        "versioning": true,
+        "columns": ["TemplateType:Choice", "Active:Boolean"]
+      },
+      {
+        "name": "ClubReports",
+        "displayName": "Отчёты объединений",
+        "versioning": true,
+        "columns": ["Club:Lookup(StudentClubs)", "ReportingPeriod:Text", "ReviewStatus:Choice"]
+      }
+    ],
+    "lists": [
+      {
+        "name": "StudentAppeals",
+        "title": "Обращения студентов",
+        "columns": ["RegistrationNumber:Text:unique", "Category:Choice", "Subject:Text", "Message:Note", "Applicant:Person", "Responsible:Person", "RegisteredAt:DateTime", "ResponseDue:DateTime", "Status:Choice", "Response:Note"]
+      },
+      {
+        "name": "StudentClubs",
+        "title": "Студенческие объединения",
+        "columns": ["Title:Text", "Leader:Person", "Members:PersonMulti", "WorkPlan:Hyperlink", "PlanProgress:Number", "Status:Choice", "TeamsChannelId:Text"]
+      },
+      {
+        "name": "YouthEvents",
+        "title": "Мероприятия",
+        "columns": ["Title:Text", "StartDate:DateTime", "EndDate:DateTime", "Location:Text", "Owner:Person", "FormsUrl:Hyperlink", "Capacity:Number", "Registered:Number", "Status:Choice"]
+      },
+      {
+        "name": "Assignments",
+        "title": "Поручения",
+        "columns": ["Title:Text", "Responsible:Person", "DueDate:DateTime", "Status:Choice", "SourceType:Choice", "SourceId:Text"]
+      },
+      {
+        "name": "AnnouncementsLog",
+        "title": "Журнал рассылок",
+        "columns": ["Title:Text", "Body:Note", "Audience:Text", "Channels:ChoiceMulti", "SentAt:DateTime", "SentBy:Person", "DeliveryCount:Number"]
+      }
+    ]
+  },
+  "powerAutomate": [
+    {
+      "name": "PA-01 Document approval",
+      "trigger": "SharePoint: When a file is created (properties only)",
+      "steps": ["Populate Word template", "Start approval: Legal", "Start approval: Accounting", "Start approval: First Vice-Rector", "Update ApprovalStatus and RouteStage", "Post result to Teams", "Notify initiator in Outlook"],
+      "sla": "Reminder after 24 hours; escalation after 48 hours"
+    },
+    {
+      "name": "PA-02 Appeal registration",
+      "trigger": "SharePoint: When an item is created in StudentAppeals",
+      "steps": ["Generate МП-YYYY-NNNN", "Set response deadline by category", "Resolve responsible employee", "Post adaptive card in Teams", "Send receipt via Outlook"],
+      "sla": "Daily recurrence checks ResponseDue; reminder at 24 hours; escalation when overdue"
+    },
+    {
+      "name": "PA-03 Event registration",
+      "trigger": "Microsoft Forms: When a new response is submitted",
+      "steps": ["Get response details", "Add participant to SharePoint", "Update Registered counter", "Send confirmation via Outlook", "Post capacity alert in Teams"]
+    },
+    {
+      "name": "PA-04 Announcement distribution",
+      "trigger": "Power Apps or SharePoint selected item",
+      "steps": ["Resolve target groups", "Post message in selected Teams channels", "Send Outlook group email", "Write result to AnnouncementsLog"]
+    },
+    {
+      "name": "PA-05 Monthly reports",
+      "trigger": "Recurrence: first day of month 08:00 Europe/Moscow",
+      "steps": ["Get SharePoint data", "Populate Word templates", "Create Excel register", "Save files to Reports library", "Post links to Vice-Rector in Teams"]
+    }
+  ],
+  "security": {
+    "authentication": "Microsoft Entra ID / SharePoint Online SSO",
+    "groups": [
+      {"name": "YouthPolicy-ViceRector", "permission": "Full Control", "scope": "Entire site"},
+      {"name": "YouthPolicy-Staff", "permission": "Edit", "scope": "Assigned sections and own records"},
+      {"name": "YouthPolicy-Students", "permission": "Read/Create", "scope": "Appeal form and events calendar only"}
+    ],
+    "recommendations": ["Disable anonymous links", "Require MFA through Conditional Access", "Enable Microsoft Purview audit", "Use item-level permissions for confidential appeals", "Store flow connections under a service account"]
+  }
+}

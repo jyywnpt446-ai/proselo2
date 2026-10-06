@@ -1,0 +1,15 @@
+{
+  "name": "Pro.Село — возможности рядом",
+  "short_name": "Pro.Село",
+  "description": "Единая экосистема возможностей для сельской молодёжи",
+  "lang": "ru",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fbfaf5",
+  "theme_color": "#16483a",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
